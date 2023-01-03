@@ -1,6 +1,7 @@
 package net.berend05be.freezingmod;
 
 import net.berend05be.freezingmod.effect.ModEffects;
+import net.berend05be.freezingmod.enchantment.ModEnchantments;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,5 +14,6 @@ public class FreezingMod implements ModInitializer {
 	public void onInitialize() {
 
 		ModEffects.registerEffects();
+		ModEnchantments.RegisterModEnchantments();
 	}
 }
