@@ -1,6 +1,6 @@
-package net.berend05be.freezingmod.mixin;
+package net.berend05be.mobmod.mixin;
 
-import net.berend05be.freezingmod.FreezingMod;
+import net.berend05be.mobmod.MobMod;
 import net.minecraft.client.gui.screen.TitleScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -11,6 +11,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class ExampleMixin {
 	@Inject(at = @At("HEAD"), method = "init()V")
 	private void init(CallbackInfo info) {
-		FreezingMod.LOGGER.info("This line is printed by an example mod mixin!");
+		MobMod.LOGGER.info("This line is printed by an example mod mixin!");
 	}
 }

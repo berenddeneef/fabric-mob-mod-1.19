@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "freezingmod",
+  "id": "mobmod",
   "version": "${version}",
 
-  "name": "Freezing Mod",
+  "name": "Mobs&Mounts",
   "description": "This is an example description! Tell everyone what your mod is about!",
   "authors": [
     "Berend05be"
@@ -19,14 +19,14 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "net.berend05be.freezingmod.FreezingMod"
+      "net.berend05be.mobmod.MobMod"
     ],
     "client": [
-      "net.berend05be.freezingmod.FreezingModClient"
+      "net.berend05be.mobmod.MobModClient"
     ]
   },
   "mixins": [
-    "freezingmod.mixins.json"
+    "mobmod.mixins.json"
   ],
 
   "depends": {
