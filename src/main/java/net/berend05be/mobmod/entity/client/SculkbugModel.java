@@ -2,9 +2,8 @@ package net.berend05be.mobmod.entity.client;
 
 import net.berend05be.mobmod.MobMod;
 import net.berend05be.mobmod.entity.custom.SculkbugEntity;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.util.Identifier;
-import software.bernie.geckolib.core.animatable.model.CoreGeoBone;
-import software.bernie.geckolib.core.animation.AnimationState;
 import software.bernie.geckolib.model.GeoModel;
 
 public class SculkbugModel extends GeoModel<SculkbugEntity> {
@@ -23,4 +22,8 @@ public class SculkbugModel extends GeoModel<SculkbugEntity> {
         return new Identifier(MobMod.MOD_ID, "animations/sculkbug.animation.json");
     }
 
+    @Override
+    public RenderLayer getRenderType(SculkbugEntity animatable, Identifier texture) {
+        return RenderLayer.getEntityTranslucent(getTextureResource(animatable));
+    }
 }

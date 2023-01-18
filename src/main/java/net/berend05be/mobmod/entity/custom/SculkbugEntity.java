@@ -1,8 +1,7 @@
 package net.berend05be.mobmod.entity.custom;
 
 import net.minecraft.block.BlockState;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.*;
 import net.minecraft.entity.ai.goal.LookAroundGoal;
 import net.minecraft.entity.ai.goal.LookAtEntityGoal;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
@@ -14,35 +13,110 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.core.animation.AnimatableManager;
-import software.bernie.geckolib.core.animation.AnimationController;
-import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.*;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.object.PlayState;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
+import javax.annotation.Nullable;
+
 public class SculkbugEntity extends AnimalEntity implements GeoEntity {
-
-
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
-    public static DefaultAttributeContainer.Builder createMobAttributes() {
-        return LivingEntity.createLivingAttributes()
-                .add(EntityAttributes.GENERIC_MAX_HEALTH, 20)
-                .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.25D);
+    public SculkbugEntity(EntityType<? extends AnimalEntity> entityType, World level) {
+        super(entityType, level);
     }
 
-    public SculkbugEntity(EntityType<? extends AnimalEntity> entityType, World world) {
-        super(entityType, world);
+    // Let the player ride the entity
+    @Override
+    public ActionResult interactMob(PlayerEntity player, Hand hand) {
+        if (!this.hasPassengers()) {
+            player.startRiding(this);
+
+            return super.interactMob(player, hand);
+        }
+
+        return super.interactMob(player, hand);
     }
 
+    // Apply player-controlled movement
+    @Override
+    public void travel(Vec3d pos) {
+        if (this.isAlive()) {
+            if (this.hasPassengers()) {
+                LivingEntity passenger = (LivingEntity)getPrimaryPassenger();
+                this.prevYaw = getYaw();
+                this.prevPitch = getPitch();
+
+                setYaw(passenger.getYaw());
+                setPitch(passenger.getPitch() * 0.75f);
+                setRotation(getYaw(), getPitch());
+
+                this.bodyYaw = this.getYaw();
+                this.headYaw = this.bodyYaw;
+                float x = passenger.sidewaysSpeed * 0.75F;
+                float z = passenger.forwardSpeed;
+
+                if (z <= 0)
+                    z *= 0.25f;
+
+                this.setMovementSpeed(0.2f);
+                super.travel(new Vec3d(x, pos.y, z));
+            }
+        }
+    }
+
+    // Get the controlling passenger
     @Nullable
     @Override
-    public PassiveEntity createChild(ServerWorld world, PassiveEntity entity) {
-        return null;
+    public Entity getPrimaryPassenger() {
+        return getFirstPassenger();
+    }
+
+    @Override
+    public boolean isLogicalSideForUpdatingMovement() {
+        return true;
+    }
+
+    // Adjust the rider's position while riding
+    @Override
+    public void updatePassengerPosition(Entity entity) {
+        super.updatePassengerPosition(entity);
+
+        if (entity instanceof LivingEntity passenger) {
+            entity.setPosition(getX(), getY() - -1.4f, getZ());
+
+            this.prevPitch = passenger.prevPitch;
+        }
+    }
+
+    @Override
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+        controllers.add(new AnimationController(this, "controller",
+                0, this::predicate));
+    }
+    private PlayState predicate(AnimationState animationState) {
+        if(animationState.isMoving()) {
+            animationState.getController().setAnimation(RawAnimation.begin().then("animation.sculkbug.walk", Animation.LoopType.LOOP));
+            return PlayState.CONTINUE;
+        }
+
+        animationState.getController().setAnimation(RawAnimation.begin().then("animation.sculkbug.idle", Animation.LoopType.LOOP));
+        return PlayState.CONTINUE;
+    }
+    public static DefaultAttributeContainer.Builder setAttributes() {
+        return AnimalEntity.createMobAttributes()
+                .add(EntityAttributes.GENERIC_MAX_HEALTH, 20.0D)
+                .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 8.0f)
+                .add(EntityAttributes.GENERIC_ATTACK_SPEED, 2.0f)
+                .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.4f);
     }
 
     protected void initGoals() {
@@ -51,16 +125,13 @@ public class SculkbugEntity extends AnimalEntity implements GeoEntity {
     }
 
     @Override
-    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new AnimationController<>(this, "livingController", 0, state -> {
-            return state.setAndContinue(RawAnimation.begin().thenLoop("idle"));
-        }));
-    }
-
-
-    @Override
     public AnimatableInstanceCache getAnimatableInstanceCache() {
         return this.cache;
+    }
+
+    @Override
+    public PassiveEntity createChild(ServerWorld world, PassiveEntity entity) {
+        return null;
     }
 
     @Override
@@ -82,5 +153,10 @@ public class SculkbugEntity extends AnimalEntity implements GeoEntity {
     protected void playStepSound(BlockPos pos, BlockState state) {
         this.playSound(SoundEvents.ENTITY_SPIDER_STEP, 0.15f, 1.0f);
     }
-}
 
+    @Override
+    protected float getActiveEyeHeight(EntityPose pose, EntityDimensions dimensions) {
+        return 0.5F;
+    }
+
+}

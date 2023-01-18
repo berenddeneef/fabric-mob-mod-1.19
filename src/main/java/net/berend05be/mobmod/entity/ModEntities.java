@@ -14,5 +14,6 @@ public class ModEntities {
     public static final EntityType<SculkbugEntity> SCULKBUG = Registry.register(
             Registries.ENTITY_TYPE, new Identifier(MobMod.MOD_ID, "sculkbug"),
             FabricEntityTypeBuilder.create(SpawnGroup.CREATURE, SculkbugEntity::new)
-                    .dimensions(EntityDimensions.fixed(1.0f, 1.0f)).build());
+                    .dimensions(EntityDimensions.fixed(1.5f, 1.9f)).build());
+
 }
