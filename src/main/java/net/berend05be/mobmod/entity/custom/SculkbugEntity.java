@@ -10,6 +10,7 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.FlyingEntity;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.ActionResult;
@@ -28,24 +29,55 @@ import javax.annotation.Nullable;
 
 public class SculkbugEntity extends FlyingEntity implements GeoEntity {
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
-    private boolean upIsPressed, downIsPressed;
+    private boolean upIsPressed, downIsPressed, forward, backward, left, right;
+    protected Item sourceItem;
+
+
+    public SculkbugEntity(EntityType<? extends FlyingEntity> entityType, World world) {
+        super(entityType, world);
+    }
+
     @Override
     public void tick() {
         super.tick();
-        if (world.isClient) {
+        if (getWorld().isClient()) {
             upIsPressed = MinecraftClient.getInstance().options.jumpKey.isPressed();
             downIsPressed = MinecraftClient.getInstance().options.sprintKey.isPressed();
+            forward = MinecraftClient.getInstance().options.forwardKey.isPressed();
+            backward = MinecraftClient.getInstance().options.backKey.isPressed();
+            left = MinecraftClient.getInstance().options.leftKey.isPressed();
+            right = MinecraftClient.getInstance().options.rightKey.isPressed();
         }
     }
-
-
-    public SculkbugEntity(EntityType<? extends FlyingEntity> entityType, World level) {
-        super(entityType, level);
+    @Override
+    public void tickMovement() {
+        super.tickMovement();
+        if (this.getWorld().isClient() || !this.isAlive()) {
+            return;
+        }
     }
     @Override
+    public void move(MovementType movementType, Vec3d movement) {
+        super.move(movementType, movement);
+    }
+
+
+    public SculkbugEntity(EntityType<? extends FlyingEntity > entityType, World level, Item sourceItem) {
+        super(entityType, level);
+        setNoGravity(true);
+        this.sourceItem = sourceItem;
+    }
+    @Nullable
+    @Override
+    public LivingEntity getControllingPassenger() {
+        return getFirstPassenger() instanceof LivingEntity entity ? entity : null;
+    }
+
+    @Override
     public void travel(Vec3d pos) {
+        if (this.isAlive()) {
             if (this.hasPassengers()) {
-                LivingEntity passenger = (LivingEntity)getPrimaryPassenger();
+                LivingEntity passenger = (LivingEntity)getControllingPassenger();
                 this.prevYaw = getYaw();
                 this.prevPitch = getPitch();
 
@@ -55,31 +87,31 @@ public class SculkbugEntity extends FlyingEntity implements GeoEntity {
 
                 this.bodyYaw = this.getYaw();
                 this.headYaw = this.bodyYaw;
-                float x = passenger.sidewaysSpeed * 0.5F;
-                float z = passenger.forwardSpeed;
+                float x = 0;
+                float z = 0;
                 float y = 0;
-                if (forwardSpeed <= 0.0f) {
-                    forwardSpeed *= 0.25f;
-                }
-
-                if (upIsPressed) {
-                    y = 500f;
-                }
-
-                if (downIsPressed) {
-                    y = -500f;
-                }
-
-
-                if (z <= 0)
-                    z *= 0.25f;
-
-                this.setMovementSpeed(0.3f);
+                if (upIsPressed)
+                   y = 1;
+                else y=0;
+                if (downIsPressed)
+                    y=-1;
+                if (forward)
+                    z = 1;
+                else z=0;
+                if (backward)
+                    z=-1;
+                if (left)
+                    x = 1;
+                else x=0;
+                if (right)
+                    x=-1;
                 super.travel(new Vec3d(x, y, z));
+                Vec3d vec3d2 = this.getVelocity();
+                this.setVelocity(vec3d2.x,vec3d2.y, vec3d2.z);
             }
         }
+    }
 
-    // Let the player ride the entity
     @Override
     public ActionResult interactMob(PlayerEntity player, Hand hand) {
         if (!this.hasPassengers()) {
@@ -91,28 +123,14 @@ public class SculkbugEntity extends FlyingEntity implements GeoEntity {
         return super.interactMob(player, hand);
     }
 
-    // Get the controlling passenger
-    @Nullable
-    public Entity getPrimaryPassenger() {
-        return getFirstPassenger();
-    }
 
     @Override
     public boolean isLogicalSideForUpdatingMovement() {
         return true;
     }
 
-    // Adjust the rider's position while riding
-    @Override
-    public void updatePassengerPosition(Entity entity) {
-        super.updatePassengerPosition(entity);
 
-        if (entity instanceof LivingEntity passenger) {
-            entity.setPosition(getX(), getY() - -1.4f, getZ());
 
-            this.prevPitch = passenger.prevPitch;
-        }
-    }
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
@@ -120,8 +138,12 @@ public class SculkbugEntity extends FlyingEntity implements GeoEntity {
                 1, this::predicate));
     }
     private PlayState predicate(AnimationState animationState) {
-        if(animationState.isMoving()) {
+        if(animationState.isMoving()&(isOnGround())) {
             animationState.getController().setAnimation(RawAnimation.begin().then("animation.sculkbug.walk", Animation.LoopType.LOOP));
+            return PlayState.CONTINUE;
+        }
+        if(animationState.isMoving()) {
+            animationState.getController().setAnimation(RawAnimation.begin().then("animation.sculkbug.flying", Animation.LoopType.LOOP));
             return PlayState.CONTINUE;
         }
 
@@ -131,8 +153,8 @@ public class SculkbugEntity extends FlyingEntity implements GeoEntity {
     public static DefaultAttributeContainer.Builder setAttributes() {
         return AnimalEntity.createMobAttributes()
                 .add(EntityAttributes.GENERIC_MAX_HEALTH, 20.0D)
-                .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.6f)
-                .add(EntityAttributes.GENERIC_FLYING_SPEED, 0.6f)
+                .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 1f)
+                .add(EntityAttributes.GENERIC_FLYING_SPEED, 1f)
                 .add(EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE, 2f);
     }
 
@@ -173,5 +195,10 @@ public class SculkbugEntity extends FlyingEntity implements GeoEntity {
     protected float getActiveEyeHeight(EntityPose pose, EntityDimensions dimensions) {
         return 1.6F;
     }
-
+    public boolean isPushable() {
+        return !this.hasPassengers();
+    }
+    public double getMountedHeightOffset() {
+        return (double)1.75;
+    }
 }

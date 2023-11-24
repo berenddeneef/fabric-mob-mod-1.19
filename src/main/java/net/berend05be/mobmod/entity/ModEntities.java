@@ -13,7 +13,10 @@ import net.minecraft.util.Identifier;
 public class ModEntities {
     public static final EntityType<SculkbugEntity> SCULKBUG = Registry.register(
             Registries.ENTITY_TYPE, new Identifier(MobMod.MOD_ID, "sculkbug"),
-            FabricEntityTypeBuilder.create(SpawnGroup.CREATURE, SculkbugEntity::new)
-                    .dimensions(EntityDimensions.fixed(1.5f, 1.9f)).build());
+            FabricEntityTypeBuilder.<SculkbugEntity>create(SpawnGroup.CREATURE, SculkbugEntity::new)
+                    .dimensions(EntityDimensions.fixed(1.5f, 2f)).build());
 
+    public static void registerModEntities() {
+        MobMod.LOGGER.info("Registering Mod Entities for " + MobMod.MOD_ID);
+    }
 }
