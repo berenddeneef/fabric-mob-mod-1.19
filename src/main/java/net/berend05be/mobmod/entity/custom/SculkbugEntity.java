@@ -30,6 +30,7 @@ import javax.annotation.Nullable;
 public class SculkbugEntity extends FlyingEntity implements GeoEntity {
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
     private boolean upIsPressed, downIsPressed, forward, backward, left, right;
+
     protected Item sourceItem;
 
 
@@ -49,22 +50,10 @@ public class SculkbugEntity extends FlyingEntity implements GeoEntity {
             right = MinecraftClient.getInstance().options.rightKey.isPressed();
         }
     }
-    @Override
-    public void tickMovement() {
-        super.tickMovement();
-        if (this.getWorld().isClient() || !this.isAlive()) {
-            return;
-        }
-    }
-    @Override
-    public void move(MovementType movementType, Vec3d movement) {
-        super.move(movementType, movement);
-    }
 
 
     public SculkbugEntity(EntityType<? extends FlyingEntity > entityType, World level, Item sourceItem) {
         super(entityType, level);
-        setNoGravity(true);
         this.sourceItem = sourceItem;
     }
     @Nullable
@@ -77,7 +66,7 @@ public class SculkbugEntity extends FlyingEntity implements GeoEntity {
     public void travel(Vec3d pos) {
         if (this.isAlive()) {
             if (this.hasPassengers()) {
-                LivingEntity passenger = (LivingEntity)getControllingPassenger();
+                LivingEntity passenger = getControllingPassenger();
                 this.prevYaw = getYaw();
                 this.prevPitch = getPitch();
 
@@ -89,7 +78,7 @@ public class SculkbugEntity extends FlyingEntity implements GeoEntity {
                 this.headYaw = this.bodyYaw;
                 float x = 0;
                 float z = 0;
-                float y = 0;
+                double y = 0;
                 if (upIsPressed)
                    y = 1;
                 else y=0;
@@ -107,7 +96,7 @@ public class SculkbugEntity extends FlyingEntity implements GeoEntity {
                     x=-1;
                 super.travel(new Vec3d(x, y, z));
                 Vec3d vec3d2 = this.getVelocity();
-                this.setVelocity(vec3d2.x,vec3d2.y, vec3d2.z);
+                this.setVelocity(1.055*vec3d2.x,1.055*vec3d2.y, 1.055*vec3d2.z);
             }
         }
     }
@@ -129,9 +118,6 @@ public class SculkbugEntity extends FlyingEntity implements GeoEntity {
         return true;
     }
 
-
-
-
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
         controllers.add(new AnimationController(this, "controller",
@@ -142,7 +128,7 @@ public class SculkbugEntity extends FlyingEntity implements GeoEntity {
             animationState.getController().setAnimation(RawAnimation.begin().then("animation.sculkbug.walk", Animation.LoopType.LOOP));
             return PlayState.CONTINUE;
         }
-        if(animationState.isMoving()) {
+        if(!isOnGround()) {
             animationState.getController().setAnimation(RawAnimation.begin().then("animation.sculkbug.flying", Animation.LoopType.LOOP));
             return PlayState.CONTINUE;
         }
@@ -198,7 +184,8 @@ public class SculkbugEntity extends FlyingEntity implements GeoEntity {
     public boolean isPushable() {
         return !this.hasPassengers();
     }
+
     public double getMountedHeightOffset() {
-        return (double)1.75;
+        return 1.75;
     }
 }
